@@ -97,7 +97,7 @@ class IngresosAPuntosDeRecepcion(models.Model):
         editable=False,
     )
 
-    distribucion = models.ForeignKey(Distribucion, on_delete=models.CASCADE, blank=True)
+    distribucion = models.ForeignKey(Distribucion, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return "IN-PR #{}".format(str(self.id))
