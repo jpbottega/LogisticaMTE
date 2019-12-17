@@ -55,18 +55,21 @@ class PDF_Cuadro_Fraccionamiento(View):
     def get(self, request, id_context, *args, **kwargs):
         ids = id_context.split(",")
         movimiento = EgresosPuntoDeRecepcion.objects.filter(id__in=[int(i) for i in ids])
+        # genero la lista de todos los productos del ingreso y lo paso a set de tuplas para eliminar duplicados
+        productos_desde_ingreso = set([(prod.producto, prod.producto_id) for prod in LineaDeIng.objects.filter(movimiento_id__in=[i.ingreso_asociado_id for i in movimiento])])
+
         productos = [{
                             'nombre': 'Punto de consumo',
                             'id_producto': 0
                     }] + \
                     [{
-                        'nombre': str(li.producto),
-                        'id_producto': li.producto_id
-                    } for li in LineaDeIng.objects.filter(movimiento_id__in=[i.ingreso_asociado_id for i in movimiento])]
-        pcs_con_productos = []
+                        'nombre': str(li[0]), # la posicion 0 de la lista de tuplas es el producto
+                        'id_producto': li[1] # la posicion 1 de la lista de tuplas es el id_producto
+                    } for li in productos_desde_ingreso]
+        pcs_con_productos = [] # el diccionario que enviare al template. se completa con los productos que tenga cada pc
         lineas_egreso = LineaDeEgr.objects.filter(movimiento__in=[m.id for m in movimiento])
         for m in movimiento: # agrego todos los productos de cada pc
-            productos_pc = []
+            productos_pc = [] # aqui guardo todos los productos que tenga un pc
             for l in lineas_egreso:
                 if m.id == l.movimiento_id:
                     productos_pc.append({'cantidad': l.cantidad, 'id_producto': l.producto_id})
@@ -74,10 +77,19 @@ class PDF_Cuadro_Fraccionamiento(View):
             faltantes = [{'id_producto': p['id_producto'], 'cantidad': 0} for p in productos
                          if (p['id_producto'] not in [ids['id_producto'] for ids in productos_pc] and p['id_producto'] != 0)]
             productos_pc += faltantes
-            pcs_con_productos.append({
-                'nombre': str(m.destino)[:int(str(m.destino).index('-'))],
-                'productos': productos_pc
-            })
+            # si el punto de consumo todavia no se agrego a los puntos finales para la vista lo agrego
+            if str(m.destino)[:int(str(m.destino).index('-'))] not in [pc['nombre'] for pc in pcs_con_productos]:
+                pcs_con_productos.append({
+                    'nombre': str(m.destino)[:int(str(m.destino).index('-'))],
+                    'productos': productos_pc
+                })
+            else: # si ya se agrego es porque los egresos seleccionados son de mas de un ingreso y debo sumar las lineas del mismo pc que me quedan separadas
+                for pc in pcs_con_productos:
+                    if str(m.destino)[:int(str(m.destino).index('-'))] == pc['nombre']:
+                        for x in pc['productos']:
+                            for prod_pc in productos_pc:
+                                if x['id_producto'] == prod_pc['id_producto']:
+                                    x['cantidad'] += prod_pc['cantidad']
         parametros = {
             'cabeceras': productos,
             'pcs': pcs_con_productos

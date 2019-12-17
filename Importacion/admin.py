@@ -143,8 +143,8 @@ class ImportacionDistribucionAdmin(admin.ModelAdmin):
 
         finally:
             if todo_ok:
-                messages.add_message(request, messages.SUCCESS, 'Se han importado las lineas de los ingresos ' +
-                                     str(obj.ditribucion))
+                messages.add_message(request, messages.SUCCESS, 'Se ha importado la distribucion ' +
+                                     str(obj.distribucion))
             else:
                 messages.set_level(request, messages.ERROR)
                 messages.add_message(request, messages.ERROR, mensaje)

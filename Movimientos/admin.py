@@ -46,42 +46,41 @@ def make_egresos_de_ingresos(modeladmin, request, queryset):
         if obj.estado == 'Validado':  # ver como preguntar en funcion de IngresoPR.ESTADOS
             try:
                 distribucion = Distribucion.objects.get(id=obj.distribucion_id)
-            except Distribucion.DoesNotExist:
-                messages.add_message(request, messages.ERROR, 'No hay una distribucion asociada al ingreso ' + obj)
-
-            distribuciones = DistribucionProducto.objects.filter(distribucion=distribucion)
-            egresos = []
-            for dist in distribuciones:  # recorrro los productos de la distribucion
-                # recorro los pc y genero un egreso para cada uno
-                lineasDistribucionProducto = LineaDistribucionProducto.objects.filter(distribucion=dist)
-                for pcs in lineasDistribucionProducto:
-                    if pcs.pc not in [e.destino for e in egresos]:  # si todavia no agregue el pc lo agrego
-                        egreso = EgresosPuntoDeRecepcion()
-                        egreso.destino = pcs.pc
-                        egreso.origen = obj.destino
-                        egreso.ingreso_asociado = obj
-                        egreso.save()
-                        egresos.append(egreso)
-
-            for egr in egresos:  # recorro los egresos generados
-                for dist in distribuciones:  # recorro los productos de la distribucion
+                distribuciones = DistribucionProducto.objects.filter(distribucion=distribucion)
+                egresos = []
+                for dist in distribuciones:  # recorrro los productos de la distribucion
+                    # recorro los pc y genero un egreso para cada uno
                     lineasDistribucionProducto = LineaDistribucionProducto.objects.filter(distribucion=dist)
+                    for pcs in lineasDistribucionProducto:
+                        if pcs.pc not in [e.destino for e in egresos]:  # si todavia no agregue el pc lo agrego
+                            egreso = EgresosPuntoDeRecepcion()
+                            egreso.destino = pcs.pc
+                            egreso.origen = obj.destino
+                            egreso.ingreso_asociado = obj
+                            egreso.save()
+                            egresos.append(egreso)
 
-                    try:
-                        lineaIngreso = LineaDeIng.objects.get(movimiento=obj, producto=dist.producto)
-                        for pcs in lineasDistribucionProducto:  # recorro los pcs de la distribucion actual
-                            if pcs.pc == egr.destino:
-                                lineaEgreso = LineaDeEgr()
-                                lineaEgreso.producto = dist.producto
-                                lineaEgreso.movimiento = egr
-                                lineaEgreso.cantidad = round((pcs.porcentaje * lineaIngreso.cantidad) / 100)
-                                if lineaIngreso.cantidad > 0:
-                                    lineaEgreso.save()
-                    except LineaDeIng.DoesNotExist or LineaDeIng.MultipleObjectsReturned:
-                        messages.add_message(request, messages.WARNING,
-                                             'Hubo productos en la distribucion que no se encontraron en el ingreso')
-            messages.add_message(request, messages.SUCCESS,
-                                 'Se han generados los egresos asociados al ingreso ' + str(obj))
+                for egr in egresos:  # recorro los egresos generados
+                    for dist in distribuciones:  # recorro los productos de la distribucion
+                        lineasDistribucionProducto = LineaDistribucionProducto.objects.filter(distribucion=dist)
+
+                        try:
+                            lineaIngreso = LineaDeIng.objects.get(movimiento=obj, producto=dist.producto)
+                            for pcs in lineasDistribucionProducto:  # recorro los pcs de la distribucion actual
+                                if pcs.pc == egr.destino:
+                                    lineaEgreso = LineaDeEgr()
+                                    lineaEgreso.producto = dist.producto
+                                    lineaEgreso.movimiento = egr
+                                    lineaEgreso.cantidad = round((pcs.porcentaje * lineaIngreso.cantidad) / 100)
+                                    if lineaIngreso.cantidad > 0:
+                                        lineaEgreso.save()
+                        except LineaDeIng.DoesNotExist or LineaDeIng.MultipleObjectsReturned:
+                            messages.add_message(request, messages.WARNING,
+                                                 'Hubo productos en la distribucion que no se encontraron en el ingreso')
+                messages.add_message(request, messages.SUCCESS,
+                                     'Se han generados los egresos asociados al ingreso ' + str(obj))
+            except Distribucion.DoesNotExist:
+                messages.add_message(request, messages.ERROR, 'No hay una distribucion asociada al ingreso ' + str(obj))
         else:
             messages.add_message(request, messages.ERROR, 'Debe validarse el ingreso para poder generar sus egresos')
 make_egresos_de_ingresos.short_description = 'Generar egresos asociados'
