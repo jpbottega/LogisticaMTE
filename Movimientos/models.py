@@ -39,34 +39,34 @@ class LineaDistribucionProducto(models.Model):
 
     distribucion = models.ForeignKey(DistribucionProducto, on_delete=models.CASCADE)
     pc = models.ForeignKey(PuntoDeConsumo, on_delete=models.CASCADE, verbose_name="Punto de Consumo")
-    porcentaje = models.FloatField(default=0)  # deberia ser solo positivo
+    porcentaje = models.DecimalField(default=0, max_digits=3, decimal_places=2)  # todo deberia ser solo positivo
 
     def __str__(self):
         return "LD-Prod #{}".format(str(self.id))
 
-    def save(self, force_insert=False, force_update=False, using=None,
-             update_fields=None):
-        try:
-            estado_anterior = LineaDistribucionProducto.objects.get(id=self.id)
-            total_asignado = self.traerTotalAsignado() - estado_anterior.porcentaje + self.porcentaje
-            if self.porcentaje < 0 or self.porcentaje > 100 or total_asignado > 100:
-                self.porcentaje = estado_anterior.porcentaje
-            else:  # si esta en 100% y suma a linea 1 y resta a linea 2 solo se me esta guardando linea 2
-                distribucion_producto = DistribucionProducto.objects.get(id=self.distribucion_id)
-                distribucion_producto.total_asignado = total_asignado
-                distribucion_producto.save()
-
-        except LineaDistribucionProducto.DoesNotExist:
-            total_asignado = self.traerTotalAsignado() + self.porcentaje # puede fallar si es mayor a 100
-            if self.porcentaje < 0 or self.porcentaje > 100 or total_asignado > 100:
-                self.porcentaje = 0
-            else:  # si esta en 100% y suma a linea 1 y resta a linea 2 solo se me esta guardando linea 2
-                distribucion_producto = DistribucionProducto.objects.get(id=self.distribucion_id)
-                distribucion_producto.total_asignado = total_asignado
-                distribucion_producto.save()
-
-        finally:
-            return super(LineaDistribucionProducto, self).save()
+    # def save(self, force_insert=False, force_update=False, using=None,
+    #          update_fields=None):
+    #     try:
+    #         estado_anterior = LineaDistribucionProducto.objects.get(id=self.id)
+    #         total_asignado = self.traerTotalAsignado() - estado_anterior.porcentaje + self.porcentaje
+    #         if self.porcentaje < 0 or self.porcentaje > 100 or total_asignado > 100:
+    #             self.porcentaje = estado_anterior.porcentaje
+    #         else:  # si esta en 100% y suma a linea 1 y resta a linea 2 solo se me esta guardando linea 2
+    #             distribucion_producto = DistribucionProducto.objects.get(id=self.distribucion_id)
+    #             distribucion_producto.total_asignado = total_asignado
+    #             distribucion_producto.save()
+    #
+    #     except LineaDistribucionProducto.DoesNotExist:
+    #         total_asignado = self.traerTotalAsignado() + self.porcentaje # puede fallar si es mayor a 100
+    #         if self.porcentaje < 0 or self.porcentaje > 100 or total_asignado > 100:
+    #             self.porcentaje = 0
+    #         else:  # si esta en 100% y suma a linea 1 y resta a linea 2 solo se me esta guardando linea 2
+    #             distribucion_producto = DistribucionProducto.objects.get(id=self.distribucion_id)
+    #             distribucion_producto.total_asignado = total_asignado
+    #             distribucion_producto.save()
+    #
+    #     finally:
+    #         return super(LineaDistribucionProducto, self).save()
 
     def traerTotalAsignado(self):
         total = 0

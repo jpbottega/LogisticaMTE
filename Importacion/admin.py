@@ -105,7 +105,8 @@ class ImportacionDistribucionAdmin(admin.ModelAdmin):
             excel_file = obj.documento
             lineas = pd.read_excel(excel_file)
             # columnas = [columna.lower() for columna in lineas.columns]
-            lineas.columns = [l.lower().strip().replace(' ', '_') for l in lineas.columns]
+            lineas.columns = [l.lower().strip().replace(' ', '_').replace('.', 'dtrpcvpr') for l in lineas.columns]
+            # reemplazo los . de la cadena por un texto que no deberia aparecer porque sino falla el getattr()
             lineas.drop(lineas.columns[lineas.columns.str.contains('unnamed', case=False)], axis=1, inplace=True)
             # Hago un replace porque los espacios causan errores en el getattr()
             for columna in lineas.columns:
@@ -113,7 +114,7 @@ class ImportacionDistribucionAdmin(admin.ModelAdmin):
                     nueva_distribucion_producto = DistribucionProducto()
                     nueva_distribucion_producto.distribucion = obj.distribucion
                     nueva_distribucion_producto.producto = VarianteProducto.objects.get(
-                        denominacion__iexact=str(columna).replace('_', ' '))
+                        denominacion__iexact=str(columna).replace('dtrpcvpr', '.').replace('_', ' '))
                     nueva_distribucion_producto.save()
                     aux_ultima_linea = None
                     for linea in lineas.itertuples():
@@ -121,7 +122,7 @@ class ImportacionDistribucionAdmin(admin.ModelAdmin):
                         nueva_linea_distribucion_producto.distribucion = nueva_distribucion_producto
                         nueva_linea_distribucion_producto.pc = PuntoDeConsumo.objects.get(
                             nombre__icontains=str(getattr(linea, 'punto_de_consumo')))
-                        nueva_linea_distribucion_producto.porcentaje = getattr(linea, str(columna))
+                        nueva_linea_distribucion_producto.porcentaje = round(getattr(linea, str(columna)), 2) # esta creo q es la q esta tirando error por el . en algunos nombres
                         nueva_linea_distribucion_producto.save()
                         aux_ultima_linea = nueva_linea_distribucion_producto
                     nueva_distribucion_producto.total_asignado = aux_ultima_linea.traerTotalAsignado()
