@@ -36,7 +36,7 @@ class VarianteProducto(models.Model):
     proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE, default = None)
     denominacion = models.CharField(max_length=40, default='', verbose_name="Denominación del producto por parte del Proveedor")
     cantidad = models.DecimalField(default=0, verbose_name="Cantidad por unidad", max_digits=5, decimal_places=3)
-    pack = models.PositiveIntegerField(default=0, verbose_name="Unidades de empaque")
+    pack = models.PositiveIntegerField(default=1, verbose_name="Unidades de empaque")
 
     def __str__(self):
         return self.denominacion

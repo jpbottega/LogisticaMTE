@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'Productos',
     'Movimientos',
     'Importacion',
+    'Menus',
     'import_export',
     'Stock',
 ]
