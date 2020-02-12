@@ -1,13 +1,13 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.shortcuts import redirect
 from django.urls import reverse
+from Menus.models import Menu, AsignacionMenu, ComposicionMenu
 from .models import EgresosPuntoDeRecepcion, IngresosAPuntosDeRecepcion, LineaDeEgr, LineaDeIng, Distribucion, \
     DistribucionProducto, LineaDistribucionProducto
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from django.utils.safestring import mark_safe
 from .filters import *
-from django.contrib import messages
 
 
 # Acciones adicionales
@@ -93,6 +93,38 @@ def make_cuadro_fraccionamiento(modeladmin, request, queryset):
             cadena += "," + str(obj.id)
     return redirect(cadena)
 make_cuadro_fraccionamiento.short_description = "Generar Cuadro de Fraccionamiento"
+
+
+def make_egresos_de_ingresos_con_menus(modeladmin, request, queryset):
+    for obj in queryset:
+        if obj.estado == 'Validado':
+            egresos = []
+            # Traigo los puntos de consumo del pr del ingreso
+            puntos_de_consumo = PuntoDeConsumo.objects.filter(punto_de_recepcion=obj.destino)
+            for pc in puntos_de_consumo:  # Genero un egreso para cada pc
+                egreso = EgresosPuntoDeRecepcion()
+                egreso.destino = pc
+                egreso.origen = obj.destino
+                egreso.ingreso_asociado = obj
+                egreso.save()
+                egresos.append(egreso) # por ahi este lo saco
+                # calculo la distribucion en funcion de los menus q el pc tenga asignado
+                menus_pc = AsignacionMenu.objects.filter(punto_de_consumo=pc)
+                productos = []
+                for menu in menus_pc:
+                    composicion = ComposicionMenu.objects.filter(menu=menu)
+                    for prod in composicion:
+                        if prod.producto not in [p['producto'] for p in productos]:
+                            productos.append({'producto': prod.producto, 'cantidad':prod.cantidad})
+                        else:
+                            for p in productos:
+                                if p['producto'] == prod.producto:
+                                    p['cantidad'] += prod.cantidad
+                for producto in productos:
+                    nueva_linea_egreso = LineaDeEgr()
+                    nueva_linea_egreso.producto = VarianteProducto.objects.get(tipo=producto['producto'], proveedor=obj.origen)
+
+                    # TODO terminar la generacion de egresos con los menus
 
 
 # Register your models here.

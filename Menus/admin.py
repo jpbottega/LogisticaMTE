@@ -28,5 +28,5 @@ class AsignacionAdmin(admin.ModelAdmin):
     readonly_fields = ['fecha_actualizacion']
 
 
-admin.site.register(Menu, MenuAdmin)
-admin.site.register(AsignacionMenu, AsignacionAdmin)
+# admin.site.register(Menu, MenuAdmin)
+# admin.site.register(AsignacionMenu, AsignacionAdmin)

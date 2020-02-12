@@ -16,11 +16,13 @@ class ProductoGenerico(models.Model):
     )
     categoria = models.CharField(max_length=15, default='', choices=CATEGORIA)
     tipo = models.CharField(max_length=25, default='')
+
     UNIDAD_DE_MEDIDA = (
        ('Kilo', 'Kilogramos'),
        ('Litro', 'Litros'),
        ('Unidad', 'Unidad'),
     )
+    # unidad_de_medida = models.CharField(max_length=15, default='', choices=UNIDAD_DE_MEDIDA)
     unidad_de_medida = models.CharField(max_length=15, default='', choices=UNIDAD_DE_MEDIDA)
 
     def __str__(self):
@@ -37,6 +39,7 @@ class VarianteProducto(models.Model):
     denominacion = models.CharField(max_length=40, default='', verbose_name="Denominación del producto por parte del Proveedor")
     cantidad = models.DecimalField(default=0, verbose_name="Cantidad por unidad", max_digits=5, decimal_places=3)
     pack = models.PositiveIntegerField(default=1, verbose_name="Unidades de empaque")
+    # peso_en_kg = models.DecimalField(default=0, verbose_name="Peso en Kilogramos", max_digits=5, decimal_places=3)
 
     def __str__(self):
         return self.denominacion

@@ -56,9 +56,16 @@ class VarianteProductoAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     model = VarianteProducto
     skip_unchanged = True
     resource_class = VarianteProductoResource
+    # list_display = ['proveedor', 'denominacion', 'peso_formateado']
     list_display = ['proveedor', 'denominacion', 'cantidad_formateada', 'pack']
+
     list_filter = [TipoProductoEnVarianteProductoFilter, ProveedorEnVarianteProductoFilter,
                    DenominacionEnVarianteProductoFilter]
+
+    def peso_formateado(self, obj):
+        return str(obj.peso_en_kg) + ' - ' + "KG"
+
+    peso_formateado.__name__ = 'Peso'
 
     def cantidad_formateada(self, obj):
         cadena = 'N/D'
@@ -81,6 +88,8 @@ class ProductoGenericoAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     skip_unchanged = True
     inlines = [VarianteProductoInLine]
     resource_class = ProductoGenericoResource
+    # list_display = ['tipo', 'categoria',]
+    # list_filter = [TipoProductoFilter, 'categoria',]
     list_display = ['tipo', 'categoria', 'unidad_de_medida']
     list_filter = [TipoProductoFilter, 'categoria', 'unidad_de_medida', ]
 
