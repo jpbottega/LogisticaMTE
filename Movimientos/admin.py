@@ -43,40 +43,43 @@ make_remitos_en_masa.short_description = "Generar Remitos"
 
 def make_egresos_de_ingresos(modeladmin, request, queryset):
     for obj in queryset:
-        if obj.estado == 'Validado':  # ver como preguntar en funcion de IngresoPR.ESTADOS
+        if obj.estado == 'Validado':
             try:
+                egresos = []
+                for punto_consumo in PuntoDeConsumo.objects.raw('''
+                    SELECT * FROM "Organizacion_puntodeconsumo" opc WHERE opc.punto_ptr_id IN 
+                        (SELECT DISTINCT(mldp.pc_id) FROM "Movimientos_lineadistribucionproducto" mldp WHERE mldp.distribucion_id IN
+                            (SELECT mdp.id FROM "Movimientos_distribucionproducto" mdp WHERE mdp.distribucion_id = {})
+                        )
+                '''.format(obj.distribucion_id)):
+                    print(punto_consumo)
+                    egreso = EgresosPuntoDeRecepcion()
+                    egreso.destino = punto_consumo
+                    egreso.origen = obj.destino
+                    egreso.ingreso_asociado = obj
+                    egresos.append(egreso)
+                egresos = EgresosPuntoDeRecepcion.objects.bulk_create(egresos)
+
                 distribucion = Distribucion.objects.get(id=obj.distribucion_id)
                 distribuciones = DistribucionProducto.objects.filter(distribucion=distribucion)
-                egresos = []
-                for dist in distribuciones:  # recorrro los productos de la distribucion
-                    # recorro los pc y genero un egreso para cada uno
-                    lineasDistribucionProducto = LineaDistribucionProducto.objects.filter(distribucion=dist)
-                    for pcs in lineasDistribucionProducto:
-                        if pcs.pc not in [e.destino for e in egresos]:  # si todavia no agregue el pc lo agrego
-                            egreso = EgresosPuntoDeRecepcion()
-                            egreso.destino = pcs.pc
-                            egreso.origen = obj.destino
-                            egreso.ingreso_asociado = obj
-                            egreso.save()
-                            egresos.append(egreso)
 
+                lineas_de_egresos = []
                 for egr in egresos:  # recorro los egresos generados
                     for dist in distribuciones:  # recorro los productos de la distribucion
-                        lineasDistribucionProducto = LineaDistribucionProducto.objects.filter(distribucion=dist)
-
+                        lineasDistribucionProducto = LineaDistribucionProducto.objects.filter(distribucion=dist, pc=egr.destino)
                         try:
                             lineaIngreso = LineaDeIng.objects.get(movimiento=obj, producto=dist.producto)
                             for pcs in lineasDistribucionProducto:  # recorro los pcs de la distribucion actual
-                                if pcs.pc == egr.destino:
-                                    lineaEgreso = LineaDeEgr()
-                                    lineaEgreso.producto = dist.producto
-                                    lineaEgreso.movimiento = egr
-                                    lineaEgreso.cantidad = round((pcs.porcentaje * lineaIngreso.cantidad) / 100)
-                                    if lineaIngreso.cantidad > 0:
-                                        lineaEgreso.save()
+                                lineaEgreso = LineaDeEgr()
+                                lineaEgreso.producto = dist.producto
+                                lineaEgreso.movimiento = egr
+                                lineaEgreso.cantidad = round((pcs.porcentaje * lineaIngreso.cantidad) / 100)
+                                if lineaIngreso.cantidad > 0:
+                                    lineas_de_egresos.append(lineaEgreso)
                         except LineaDeIng.DoesNotExist or LineaDeIng.MultipleObjectsReturned:
                             messages.add_message(request, messages.WARNING,
-                                                 'Hubo productos en la distribucion que no se encontraron en el ingreso')
+                                                 'Hay productos en la distribucion que no se encuentran en el ingreso')
+                LineaDeEgr.objects.bulk_create(lineas_de_egresos)
                 messages.add_message(request, messages.SUCCESS,
                                      'Se han generados los egresos asociados al ingreso ' + str(obj))
             except Distribucion.DoesNotExist:
